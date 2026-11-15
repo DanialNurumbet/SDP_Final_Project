@@ -85,6 +85,10 @@ class EquipmentApiTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"{}", "null", "{broken", "{\"type\":\"UNKNOWN\",\"name\":\"Мяч\",\"dailyRate\":50}",
+            "{\"type\":1,\"name\":\"Мяч\",\"dailyRate\":50}",
+            "{\"type\":\"BALL\",\"name\":123,\"dailyRate\":50}",
+            "{\"type\":\"BALL\",\"name\":\"Мяч\",\"dailyRate\":\"50\"}",
+            "{\"type\":\"BALL\",\"name\":\"Мяч\",\"dailyRate\":50} {}",
             "{\"type\":\"BALL\",\"name\":\"Мяч\",\"dailyRate\":\"NaN\"}"})
     void rejectsMalformedRequests(String body) throws Exception {
         mvc.perform(post("/api/equipment").contentType("application/json").content(body))

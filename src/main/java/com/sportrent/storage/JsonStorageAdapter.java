@@ -82,8 +82,8 @@ public class JsonStorageAdapter implements EquipmentRepository, EquipmentAvailab
     }
 
     synchronized Rental saveRental(Rental rental) {
+        validateRental(rental);
         Rental copy = copyRental(rental);
-        validateRental(copy);
         Optional<Rental> existing = findRentalById(copy.id());
         if (existing.isEmpty()) {
             if (copy.status() != RentalStatus.ACTIVE) throw new ValidationException("Новая аренда должна быть активной.");
@@ -142,13 +142,8 @@ public class JsonStorageAdapter implements EquipmentRepository, EquipmentAvailab
         HashSet<UUID> rentalIds = new HashSet<>();
         HashSet<UUID> occupiedIds = new HashSet<>();
         for (Rental rental : data.rentals()) {
-            if (rental.id() == null || rental.equipmentId() == null || rental.customer() == null
-                    || rental.equipmentSnapshot() == null || rental.priceBreakdown() == null
-                    || rental.status() == null || rental.createdAt() == null || rental.tariff() == null
-                    || rental.days() < 1 || rental.days() > 30 || !rentalIds.add(rental.id())) {
-                throw new IllegalArgumentException("Invalid rental record");
-            }
             validateRental(rental);
+            if (!rentalIds.add(rental.id())) throw new IllegalArgumentException("Duplicate rental ID");
             if (rental.status() == RentalStatus.ACTIVE
                     && (!equipmentIds.contains(rental.equipmentId()) || !occupiedIds.add(rental.equipmentId()))) {
                 throw new IllegalArgumentException("Missing or multiply rented equipment");
@@ -158,11 +153,13 @@ public class JsonStorageAdapter implements EquipmentRepository, EquipmentAvailab
     }
 
     private void validateRental(Rental rental) {
-        if (rental.id() == null || rental.equipmentId() == null || rental.createdAt() == null
+        if (rental == null || rental.id() == null || rental.equipmentId() == null || rental.createdAt() == null
                 || rental.status() == null || rental.tariff() == null || rental.customer() == null
                 || rental.customer().name() == null || rental.customer().phone() == null
                 || rental.days() < 1 || rental.days() > 30
-                || rental.equipmentSnapshot() == null || rental.priceBreakdown() == null) {
+                || rental.equipmentSnapshot() == null || rental.priceBreakdown() == null
+                || rental.extras() == null || rental.extras().stream().anyMatch(java.util.Objects::isNull)
+                || rental.priceBreakdown().extras() == null) {
             throw new ValidationException("Некорректная запись аренды.");
         }
         if (rental.status() == RentalStatus.ACTIVE && rental.returnedAt() != null
@@ -180,7 +177,7 @@ public class JsonStorageAdapter implements EquipmentRepository, EquipmentAvailab
             throw new ValidationException("Услуги в сохранённой аренде повторяются.");
         }
         for (var extra : price.extras()) {
-            if (extra.extra() == null || extra.cost() == null || extra.cost().signum() < 0) {
+            if (extra == null || extra.extra() == null || extra.cost() == null || extra.cost().signum() < 0) {
                 throw new ValidationException("Некорректная стоимость услуги.");
             }
         }

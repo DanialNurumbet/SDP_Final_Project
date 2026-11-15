@@ -26,6 +26,7 @@ public class JsonFileStorage {
     public JsonFileStorage(Path path, ObjectMapper mapper) {
         this.path = path.toAbsolutePath().normalize();
         this.mapper = mapper.copy()
+                .enable(DeserializationFeature.FAIL_ON_NUMBERS_FOR_ENUMS)
                 .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);

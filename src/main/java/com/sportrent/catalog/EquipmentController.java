@@ -1,6 +1,5 @@
 package com.sportrent.catalog;
 
-import com.sportrent.shared.dto.EquipmentRequest;
 import com.sportrent.shared.dto.EquipmentResponse;
 import com.sportrent.shared.model.EquipmentType;
 import org.springframework.http.ResponseEntity;
@@ -13,8 +12,12 @@ import java.util.UUID;
 @RequestMapping("/api/equipment")
 public class EquipmentController {
     private final EquipmentService service;
+    private final EquipmentRequestReader requests;
 
-    public EquipmentController(EquipmentService service) { this.service = service; }
+    public EquipmentController(EquipmentService service, EquipmentRequestReader requests) {
+        this.service = service;
+        this.requests = requests;
+    }
 
     @GetMapping
     public List<EquipmentResponse> findAll(@RequestParam(required = false) EquipmentType type,
@@ -25,15 +28,15 @@ public class EquipmentController {
     @GetMapping("/{id}")
     public EquipmentResponse findById(@PathVariable UUID id) { return service.findById(id); }
 
-    @PostMapping
-    public ResponseEntity<EquipmentResponse> create(@RequestBody EquipmentRequest request) {
-        EquipmentResponse created = service.create(request);
+    @PostMapping(consumes = "application/json")
+    public ResponseEntity<EquipmentResponse> create(@RequestBody String body) {
+        EquipmentResponse created = service.create(requests.read(body));
         return ResponseEntity.created(URI.create("/api/equipment/" + created.id())).body(created);
     }
 
-    @PutMapping("/{id}")
-    public EquipmentResponse update(@PathVariable UUID id, @RequestBody EquipmentRequest request) {
-        return service.update(id, request);
+    @PutMapping(value = "/{id}", consumes = "application/json")
+    public EquipmentResponse update(@PathVariable UUID id, @RequestBody String body) {
+        return service.update(id, requests.read(body));
     }
 
     @DeleteMapping("/{id}")
