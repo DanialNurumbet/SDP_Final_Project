@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Каталог инвентаря — SportRent</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/catalog.css">
+    <script src="js/api.js" defer></script>
+    <script src="js/catalog.js" defer></script>
+</head>
+<body>
+<header class="site-header">
+    <h1>SportRent</h1>
+    <nav aria-label="Основная навигация">
+        <a href="index.html">Главная</a>
+        <a href="catalog.html" class="active" aria-current="page">Каталог</a>
+        <a href="pricing.html">Калькулятор</a>
+        <a href="rentals.html">Аренды</a>
+        <a href="history.html">История и отчёты</a>
+    </nav>
+</header>
+<main class="container">
+    <div class="catalog-heading">
+        <p class="eyebrow">Инвентарь пункта проката</p>
+        <h2>Каталог</h2>
+        <p>Каждая карточка — один предмет. Здесь можно проверить доступность, добавить инвентарь и обновить цену.</p>
+    </div>
+    <div id="catalog-message" role="status" aria-live="polite"></div>
+    <div class="catalog-layout">
+        <section class="catalog-editor card" aria-labelledby="editor-title">
+            <h2 id="editor-title">Добавить предмет</h2>
+            <p id="editor-note">Все поля обязательны. Цена указана за один день аренды.</p>
+            <form id="equipment-form" novalidate>
+                <fieldset id="equipment-fields">
+                    <legend class="visually-hidden">Данные предмета</legend>
+                    <label for="equipment-type">Тип</label>
+                    <select id="equipment-type" name="type" required aria-describedby="type-error">
+                        <option value="BICYCLE">Велосипед</option>
+                        <option value="BALL">Мяч</option>
+                        <option value="RACKET">Ракетка</option>
+                    </select>
+                    <p class="field-error" id="type-error"></p>
+                    <label for="equipment-name">Название</label>
+                    <input id="equipment-name" name="name" type="text" minlength="2" maxlength="100" required
+                           placeholder="Например, Велосипед №4" aria-describedby="name-error">
+                    <p class="field-error" id="name-error"></p>
+                    <label for="equipment-rate">Цена за день, KZT</label>
+                    <input id="equipment-rate" name="dailyRate" type="number" min="0.01" max="1000000" step="0.01"
+                           inputmode="decimal" required placeholder="1000.00" aria-describedby="dailyRate-error">
+                    <p class="field-error" id="dailyRate-error"></p>
+                    <div class="editor-actions">
+                        <button id="save-equipment" type="submit">Добавить предмет</button>
+                        <button id="cancel-edit" type="button" class="secondary" hidden>Отмена</button>
+                    </div>
+                </fieldset>
+            </form>
+        </section>
+        <section class="catalog-inventory" aria-labelledby="inventory-title">
+            <h2 id="inventory-title">Инвентарь</h2>
+            <form id="catalog-filters" class="catalog-filters" aria-label="Фильтры каталога">
+                <div>
+                    <label for="filter-type">Тип предмета</label>
+                    <select id="filter-type" name="type">
+                        <option value="">Все типы</option>
+                        <option value="BICYCLE">Велосипеды</option>
+                        <option value="BALL">Мячи</option>
+                        <option value="RACKET">Ракетки</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filter-availability">Доступность</label>
+                    <select id="filter-availability" name="available">
+                        <option value="">Все предметы</option>
+                        <option value="true">Свободные</option>
+                        <option value="false">В аренде</option>
+                    </select>
+                </div>
+                <button id="refresh-catalog" class="secondary" type="submit">Обновить</button>
+            </form>
+            <p id="catalog-status" role="status" aria-live="polite">Загружаем каталог…</p>
+            <div id="catalog-error" role="alert"></div>
+            <div id="equipment-list" class="equipment-list" aria-busy="true"></div>
+            <p class="catalog-note">Предмет в аренде можно изменить или удалить после возврата. Тип существующего предмета изменить нельзя.</p>
+        </section>
+    </div>
+    <noscript><p class="message error">Для работы с каталогом включите JavaScript.</p></noscript>
+</main>
+</body>
+</html>
