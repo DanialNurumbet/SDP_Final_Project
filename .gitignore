@@ -1,0 +1,10 @@
+target/
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+#локальные данные
+
+data/sportrent.json
+data/*.tmp
