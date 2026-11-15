@@ -93,6 +93,40 @@ class JsonStorageAdapterTest {
     }
 
     @Test
+    void rejectsDuplicateEquipmentAndUnknownTypesWithoutChangingFile() throws Exception {
+        open();
+        Path path = directory.resolve("sportrent.json");
+        var root = mapper.readTree(path.toFile());
+        var items = (com.fasterxml.jackson.databind.node.ArrayNode) root.get("equipment");
+        items.add(items.get(0).deepCopy());
+        String duplicated = mapper.writeValueAsString(root);
+        Files.writeString(path, duplicated);
+        assertThrows(StorageException.class, this::open);
+        assertEquals(duplicated, Files.readString(path));
+        items.remove(items.size() - 1);
+        ((com.fasterxml.jackson.databind.node.ObjectNode) items.get(0)).put("type", "SKIS");
+        String unknown = mapper.writeValueAsString(root);
+        Files.writeString(path, unknown);
+        assertThrows(StorageException.class, this::open);
+        assertEquals(unknown, Files.readString(path));
+    }
+
+    @Test
+    void rejectsTwoActiveRentalsForOneItemOnReload() throws Exception {
+        JsonStorageAdapter storage = open();
+        Equipment equipment = storage.findAll().getFirst();
+        Path path = directory.resolve("sportrent.json");
+        var root = mapper.readTree(path.toFile());
+        var records = (com.fasterxml.jackson.databind.node.ArrayNode) root.get("rentals");
+        records.add(mapper.valueToTree(RentalFixtures.active(equipment)));
+        records.add(mapper.valueToTree(RentalFixtures.active(equipment)));
+        String corrupted = mapper.writeValueAsString(root);
+        Files.writeString(path, corrupted);
+        assertThrows(StorageException.class, this::open);
+        assertEquals(corrupted, Files.readString(path));
+    }
+
+    @Test
     void fileReplacementFailureKeepsTargetAndCleansTemporaryFile() throws Exception {
         Path target = directory.resolve("occupied");
         Files.createDirectories(target);
