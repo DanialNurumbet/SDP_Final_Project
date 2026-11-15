@@ -2,9 +2,15 @@ package com.sportrent.storage;
 
 import com.sportrent.catalog.EquipmentFactory;
 import com.sportrent.shared.contract.EquipmentRepository;
+import com.sportrent.shared.contract.EquipmentAvailabilityService;
+import com.sportrent.shared.error.ConflictException;
+import com.sportrent.shared.error.NotFoundException;
+import com.sportrent.shared.error.ValidationException;
 import com.sportrent.shared.model.Equipment;
+import com.sportrent.shared.model.EquipmentSnapshot;
 import com.sportrent.shared.model.PriceBreakdown;
 import com.sportrent.shared.model.Rental;
+import com.sportrent.shared.model.RentalStatus;
 import org.springframework.stereotype.Repository;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -13,7 +19,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public class JsonStorageAdapter implements EquipmentRepository {
+public class JsonStorageAdapter implements EquipmentRepository, EquipmentAvailabilityService {
     private final JsonFileStorage file;
     private final EquipmentFactory factory;
     private StorageData state;
@@ -48,6 +54,12 @@ public class JsonStorageAdapter implements EquipmentRepository {
     @Override
     public synchronized Equipment save(Equipment equipment) {
         Equipment valid = factory.create(equipment.getId(), equipment.getType(), equipment.getName(), equipment.getDailyRate());
+        findById(valid.getId()).ifPresent(existing -> {
+            requireAvailable(existing.getId());
+            if (existing.getType() != valid.getType()) {
+                throw new ValidationException("Тип существующего предмета менять нельзя.", java.util.Map.of("type", "Создайте новый предмет другого типа."));
+            }
+        });
         List<StoredEquipment> items = new ArrayList<>(state.equipment());
         items.removeIf(item -> item.id().equals(valid.getId()));
         items.add(StoredEquipment.from(valid));
@@ -57,6 +69,7 @@ public class JsonStorageAdapter implements EquipmentRepository {
 
     @Override
     public synchronized void deleteById(UUID id) {
+        requireAvailable(id);
         List<StoredEquipment> items = new ArrayList<>(state.equipment());
         items.removeIf(item -> item.id().equals(id));
         persist(new StorageData(items, state.rentals()));
@@ -70,11 +83,47 @@ public class JsonStorageAdapter implements EquipmentRepository {
 
     synchronized Rental saveRental(Rental rental) {
         Rental copy = copyRental(rental);
+        validateRental(copy);
+        Optional<Rental> existing = findRentalById(copy.id());
+        if (existing.isEmpty()) {
+            if (copy.status() != RentalStatus.ACTIVE) throw new ValidationException("Новая аренда должна быть активной.");
+            Equipment equipment = requireEquipment(copy.equipmentId());
+            if (!isAvailable(equipment.getId())) {
+                throw new ConflictException("EQUIPMENT_UNAVAILABLE", "Этот предмет уже находится в аренде.");
+            }
+            EquipmentSnapshot current = new EquipmentSnapshot(equipment.getName(), equipment.getType(), equipment.getDailyRate());
+            if (!current.equals(copy.equipmentSnapshot())) {
+                throw new ConflictException("EQUIPMENT_CHANGED", "Предмет изменился. Обновите расчёт и повторите оформление.");
+            }
+        } else {
+            Rental original = existing.orElseThrow();
+            if (original.status() == RentalStatus.COMPLETED) {
+                throw new ConflictException("RENTAL_ALREADY_COMPLETED", "Эта аренда уже завершена.");
+            }
+            if (copy.status() != RentalStatus.COMPLETED || !original.completedAt(copy.returnedAt()).equals(copy)) {
+                throw new ValidationException("Сохранённые условия аренды изменять нельзя; доступен только возврат.");
+            }
+        }
         List<Rental> rentals = new ArrayList<>(state.rentals());
         rentals.removeIf(item -> item.id().equals(copy.id()));
         rentals.add(copy);
         persist(new StorageData(state.equipment(), rentals));
         return copy;
+    }
+
+    @Override
+    public synchronized boolean isAvailable(UUID equipmentId) {
+        requireEquipment(equipmentId);
+        return state.rentals().stream().noneMatch(rental -> rental.equipmentId().equals(equipmentId)
+                && rental.status() == RentalStatus.ACTIVE);
+    }
+
+    private Equipment requireEquipment(UUID id) {
+        return findById(id).orElseThrow(() -> new NotFoundException("EQUIPMENT_NOT_FOUND", "Предмет не найден."));
+    }
+
+    private void requireAvailable(UUID id) {
+        if (!isAvailable(id)) throw new ConflictException("EQUIPMENT_IN_USE", "Нельзя изменить или удалить предмет с активной арендой.");
     }
 
     private void persist(StorageData updated) {
@@ -91,6 +140,7 @@ public class JsonStorageAdapter implements EquipmentRepository {
             if (!equipmentIds.add(item.id())) throw new IllegalArgumentException("Duplicate equipment ID");
         }
         HashSet<UUID> rentalIds = new HashSet<>();
+        HashSet<UUID> occupiedIds = new HashSet<>();
         for (Rental rental : data.rentals()) {
             if (rental.id() == null || rental.equipmentId() == null || rental.customer() == null
                     || rental.equipmentSnapshot() == null || rental.priceBreakdown() == null
@@ -98,7 +148,41 @@ public class JsonStorageAdapter implements EquipmentRepository {
                     || rental.days() < 1 || rental.days() > 30 || !rentalIds.add(rental.id())) {
                 throw new IllegalArgumentException("Invalid rental record");
             }
+            validateRental(rental);
+            if (rental.status() == RentalStatus.ACTIVE
+                    && (!equipmentIds.contains(rental.equipmentId()) || !occupiedIds.add(rental.equipmentId()))) {
+                throw new IllegalArgumentException("Missing or multiply rented equipment");
+            }
             copyRental(rental);
+        }
+    }
+
+    private void validateRental(Rental rental) {
+        if (rental.id() == null || rental.equipmentId() == null || rental.createdAt() == null
+                || rental.status() == null || rental.tariff() == null || rental.customer() == null
+                || rental.customer().name() == null || rental.customer().phone() == null
+                || rental.days() < 1 || rental.days() > 30
+                || rental.equipmentSnapshot() == null || rental.priceBreakdown() == null) {
+            throw new ValidationException("Некорректная запись аренды.");
+        }
+        if (rental.status() == RentalStatus.ACTIVE && rental.returnedAt() != null
+                || rental.status() == RentalStatus.COMPLETED && (rental.returnedAt() == null
+                || rental.returnedAt().isBefore(rental.createdAt()))) {
+            throw new ValidationException("Дата возврата не соответствует статусу аренды.");
+        }
+        EquipmentSnapshot snapshot = rental.equipmentSnapshot();
+        factory.create(rental.equipmentId(), snapshot.type(), snapshot.name(), snapshot.dailyRate());
+        PriceBreakdown price = rental.priceBreakdown();
+        for (java.math.BigDecimal amount : new java.math.BigDecimal[]{price.baseCost(), price.discount(), price.discountedCost(), price.total()}) {
+            if (amount == null || amount.signum() < 0) throw new ValidationException("Некорректная сумма в сохранённой аренде.");
+        }
+        if (new HashSet<>(rental.extras()).size() != rental.extras().size()) {
+            throw new ValidationException("Услуги в сохранённой аренде повторяются.");
+        }
+        for (var extra : price.extras()) {
+            if (extra.extra() == null || extra.cost() == null || extra.cost().signum() < 0) {
+                throw new ValidationException("Некорректная стоимость услуги.");
+            }
         }
     }
 
