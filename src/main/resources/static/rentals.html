@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Оформление аренды — SportRent</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/rentals.css">
+</head>
+<body>
+<main class="page">
+    <h1>Оформление и возврат</h1>
+    <p id="message" class="message hidden"></p>
+    <form id="rental-form">
+        <label>Инвентарь <select id="equipment" required></select></label>
+        <label>Имя клиента <input id="customer-name" minlength="2" maxlength="100" required></label>
+        <label>Телефон <input id="customer-phone" required></label>
+        <label>Срок (дни) <input id="days" type="number" min="1" max="30" value="1" required></label>
+        <label>Тариф
+            <select id="tariff">
+                <option value="STANDARD">Стандартный</option>
+                <option value="LONG_TERM">Долгосрочный</option>
+            </select>
+        </label>
+        <label><input id="insurance" type="checkbox" value="INSURANCE"> Страховка</label>
+        <label><input id="accessory-kit" type="checkbox" value="ACCESSORY_KIT"> Комплект аксессуаров</label>
+        <button type="submit">Оформить аренду</button>
+    </form>
+    <h2>Активные аренды</h2>
+    <section id="active-rentals"></section>
+</main>
+<script src="js/api.js"></script>
+<script src="js/rentals.js"></script>
+</body>
+</html>
