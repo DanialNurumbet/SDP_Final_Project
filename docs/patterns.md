@@ -3,6 +3,13 @@
 Каждый участник реализовал два паттерна. Подробности в `docs/member-1.md` ... `docs/member-4.md`.
 Диаграмма классов с участниками паттернов: `docs/diagrams/class-diagram.puml` (PNG рядом).
 
+Напоминание:
+
+- Участник 1 - Дамир К
+- Участник 2 - Арыстанали
+- Участник 3 - Артем
+- Участник 4 - Даниал
+
 | Pattern | Problem | Classes/interfaces | How to demonstrate | Responsible student |
 |---|---|---|---|---|
 | Factory Method | При создании предмета и при чтении из JSON нужен правильный подкласс со своей подсказкой, а сервис каталога не должен создавать продукты напрямую | `EquipmentCreator`, `BicycleCreator`, `BallCreator`, `RacketCreator`, `Bicycle`, `Ball`, `Racket`, `EquipmentFactory` | В каталоге добавить по одному предмету каждого типа и сравнить подсказки в карточках; открыть `EquipmentCreator.createEquipment()` и три создателя | Участник 1 (Дамир К) |
