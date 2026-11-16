@@ -1,0 +1,140 @@
+@startuml class-diagram
+title SportRent: pattern participants by module
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam ranksep 45
+skinparam nodesep 25
+left to right direction
+
+package "shared (contracts and models)" #F4F6F8 {
+    interface EquipmentRepository
+    interface EquipmentAvailabilityService
+    interface RentalRepository
+    interface PricingService
+    interface RentalQueryService
+    interface ReportElement {
+        +accept(visitor)
+    }
+    interface ReportVisitor {
+        +visit(Rental)
+        +visit(EquipmentSnapshot)
+        +visit(PriceBreakdown)
+    }
+    abstract class Equipment <<Product>>
+    class Rental <<record>>
+    class EquipmentSnapshot <<record>>
+    class PriceBreakdown <<record>>
+}
+
+package "catalog (member 1): Factory Method" #E8F1FB {
+    abstract class EquipmentCreator <<Creator>> {
+        +create(id, name, rate): Equipment
+        #createEquipment(id, name, rate): Equipment
+    }
+    class BicycleCreator <<ConcreteCreator>>
+    class BallCreator <<ConcreteCreator>>
+    class RacketCreator <<ConcreteCreator>>
+    class Bicycle <<ConcreteProduct>>
+    class Ball <<ConcreteProduct>>
+    class Racket <<ConcreteProduct>>
+    class EquipmentFactory <<registry>>
+}
+
+package "storage (member 1): Adapter" #E8F1FB {
+    class JsonStorageAdapter <<Adapter>>
+    class JsonRentalRepository <<Adapter>>
+    class JsonFileStorage <<Adaptee>>
+}
+
+package "pricing (member 2): Strategy and Decorator" #FDF3E1 {
+    interface PricingStrategy <<Strategy>> {
+        +discount(baseCost, days)
+    }
+    class StandardPricingStrategy
+    class LongTermPricingStrategy
+    interface RentalPrice <<Component>> {
+        +calculate(dailyRate, days)
+    }
+    class BaseRentalPrice
+    abstract class ExtraPriceDecorator <<Decorator>>
+    class InsuranceDecorator
+    class AccessoryKitDecorator
+    class RentalPricingService
+}
+
+package "rental (member 3): Builder and Observer" #EAF6EA {
+    class RentalCommandService
+    class RentalBuilder <<Builder>>
+    class RentalEventPublisher <<Subject>>
+    interface RentalEventListener <<Observer>> {
+        +onRentalEvent(event)
+    }
+    class RentalOperationLogger
+    class LatestRentalNotificationStore
+}
+
+package "reporting (member 4): Facade and Visitor" #F3E8FA {
+    class RentalReportFacade <<Facade>>
+    class TextReportExporter
+    class TextReportVisitor <<ConcreteVisitor>>
+}
+
+' ---- Factory Method ----
+EquipmentCreator <|-- BicycleCreator
+EquipmentCreator <|-- BallCreator
+EquipmentCreator <|-- RacketCreator
+BicycleCreator ..> Bicycle : creates
+BallCreator ..> Ball : creates
+RacketCreator ..> Racket : creates
+Equipment <|-- Bicycle
+Equipment <|-- Ball
+Equipment <|-- Racket
+EquipmentFactory o-- EquipmentCreator : by type
+
+' ---- Adapter ----
+JsonStorageAdapter ..|> EquipmentRepository
+JsonStorageAdapter ..|> EquipmentAvailabilityService
+JsonRentalRepository ..|> RentalRepository
+JsonRentalRepository --> JsonStorageAdapter : delegates
+JsonStorageAdapter --> JsonFileStorage : reads/writes JSON
+JsonStorageAdapter --> EquipmentFactory
+
+' ---- Strategy and Decorator ----
+StandardPricingStrategy ..|> PricingStrategy
+LongTermPricingStrategy ..|> PricingStrategy
+BaseRentalPrice ..|> RentalPrice
+BaseRentalPrice --> PricingStrategy
+ExtraPriceDecorator ..|> RentalPrice
+ExtraPriceDecorator --> RentalPrice : wraps
+InsuranceDecorator --|> ExtraPriceDecorator
+AccessoryKitDecorator --|> ExtraPriceDecorator
+RentalPricingService ..|> PricingService
+RentalPricingService --> PricingStrategy : selects by tariff
+RentalPricingService ..> RentalPrice : builds chain
+
+' ---- Builder and Observer ----
+RentalCommandService --> PricingService
+RentalCommandService ..> RentalBuilder : builds Rental
+RentalCommandService --> RentalEventPublisher : publish
+RentalEventPublisher o-- RentalEventListener : notifies
+RentalOperationLogger ..|> RentalEventListener
+LatestRentalNotificationStore ..|> RentalEventListener
+
+' ---- Facade and Visitor ----
+RentalReportFacade ..|> RentalQueryService
+RentalReportFacade --> RentalRepository
+RentalReportFacade --> TextReportExporter
+TextReportExporter ..> TextReportVisitor : uses
+TextReportVisitor ..|> ReportVisitor
+Rental ..|> ReportElement
+EquipmentSnapshot ..|> ReportElement
+PriceBreakdown ..|> ReportElement
+Rental *-- EquipmentSnapshot
+Rental *-- PriceBreakdown
+
+note bottom of RentalCommandService
+  Controllers, services and DTOs are left out on purpose.
+  See rental-creation-sequence.puml for the full call flow.
+end note
+@enduml

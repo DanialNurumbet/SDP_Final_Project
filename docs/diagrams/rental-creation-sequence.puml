@@ -1,0 +1,57 @@
+@startuml rental-creation-sequence
+title SportRent: creating a rental (POST /api/rentals)
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+autonumber
+
+actor Operator
+participant "rentals.js\n(browser)" as UI
+participant RentalCommandController as Ctrl
+participant RentalCommandService as Svc
+participant "EquipmentRepository\n(JsonStorageAdapter)" as Equip
+participant "EquipmentAvailabilityService\n(JsonStorageAdapter)" as Avail
+participant "RentalPricingService\n(Strategy + Decorator)" as Pricing
+participant RentalBuilder as Builder
+participant "RentalRepository\n(JsonRentalRepository)" as Repo
+participant "JsonStorageAdapter" as Adapter
+participant JsonFileStorage as File
+participant RentalEventPublisher as Pub
+participant "Listeners\n(Logger, NotificationStore)" as Obs
+
+Operator -> UI : fills the form, presses "Create rental"
+UI -> Ctrl : POST /api/rentals\n{equipmentId, customer, days, tariff, extras}
+Ctrl -> Svc : createRental(request)
+Svc -> Svc : validateRequest()\n(days 1-30, customer, no duplicate extras)
+Svc -> Equip : findById(equipmentId)
+Equip --> Svc : Equipment (or 404 EQUIPMENT_NOT_FOUND)
+Svc -> Avail : isAvailable(equipmentId)
+Avail --> Svc : true (or 409 EQUIPMENT_UNAVAILABLE)
+Svc -> Pricing : calculate(equipment, terms)
+note right of Pricing
+  strategy chosen by tariff,
+  BaseRentalPrice wrapped by
+  one decorator per extra
+end note
+Pricing --> Svc : PriceBreakdown
+Svc -> Builder : id, customer, snapshot, price,\nstatus ACTIVE, createdAt ... build()
+Builder --> Svc : Rental
+Svc -> Repo : save(rental)
+Repo -> Adapter : saveRental(rental)
+Adapter -> Adapter : under lock: re-check availability\nand equipment snapshot
+Adapter -> File : write(whole document)\ntemp file + atomic move
+File --> Adapter : ok
+Adapter --> Repo : saved Rental
+Repo --> Svc : saved Rental
+Svc -> Pub : publish(RentalEvent CREATED)
+Pub -> Obs : onRentalEvent(event)
+Svc --> Ctrl : Rental
+Ctrl --> UI : 201 Created, RentalResponse
+UI --> Operator : shows the rental and the price breakdown
+
+== Errors ==
+note over Ctrl, Svc
+  ValidationException (400), NotFoundException (404) and ConflictException (409)
+  are thrown by the services and turned into the unified JSON error
+  by GlobalExceptionHandler. Nothing is saved when any step fails.
+end note
+@enduml
