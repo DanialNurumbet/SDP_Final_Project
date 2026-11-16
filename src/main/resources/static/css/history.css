@@ -1,0 +1,18 @@
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 8px; }
+.summary .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.summary .stat .label { color: var(--muted); font-size: .9rem; }
+.summary .stat .value { font-size: 1.3rem; font-weight: 600; }
+.note { color: var(--muted); font-size: .9rem; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 16px 0; }
+.toolbar label { margin: 0; }
+.button-link { margin-left: auto; padding: 8px 14px; border-radius: 6px; background: var(--primary);
+               color: #fff; text-decoration: none; }
+.badge { padding: 2px 8px; border-radius: 10px; font-size: .85rem; }
+.badge.ACTIVE { background: #e6f4ea; color: var(--ok); }
+.badge.COMPLETED { background: #e4e7eb; color: var(--muted); }
+.details { margin-top: 20px; background: var(--surface); border: 1px solid var(--border);
+           border-radius: 8px; padding: 16px; }
+.details h3 { margin-top: 0; }
+.details dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0 0 12px; }
+.details dt { color: var(--muted); }
+.details dd { margin: 0; }
