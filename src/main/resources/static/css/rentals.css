@@ -1,0 +1,21 @@
+#rental-form {
+    display: grid;
+    gap: 12px;
+    max-width: 520px;
+}
+
+#rental-form label {
+    display: grid;
+    gap: 4px;
+}
+
+#active-rentals {
+    display: grid;
+    gap: 10px;
+}
+
+.rental-card {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 12px;
+}
