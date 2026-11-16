@@ -1,0 +1,46 @@
+.pricing-layout {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+    align-items: start;
+    gap: 16px;
+}
+
+#pricing-form select { width: 100%; }
+#days { width: 7rem; }
+
+.pricing-extras {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin: 18px 0;
+    padding: 4px 12px 12px;
+}
+
+.pricing-extras label {
+    margin: 6px 0 0;
+    font-weight: 400;
+}
+
+#calculate:disabled {
+    opacity: .6;
+    cursor: default;
+}
+
+.pricing-breakdown > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.pricing-breakdown dd {
+    margin: 0;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.pricing-breakdown .pricing-total {
+    font-weight: 700;
+    border-bottom: 0;
+}

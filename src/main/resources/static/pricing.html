@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Калькулятор аренды — SportRent</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/pricing.css">
+    <script src="js/api.js" defer></script>
+    <script src="js/pricing.js" defer></script>
+</head>
+<body>
+<header class="site-header">
+    <h1>SportRent</h1>
+    <nav aria-label="Основная навигация">
+        <a href="index.html">Главная</a>
+        <a href="catalog.html">Каталог</a>
+        <a href="pricing.html" class="active" aria-current="page">Калькулятор</a>
+        <a href="rentals.html">Аренды</a>
+        <a href="history.html">История и отчёты</a>
+    </nav>
+</header>
+<main class="container">
+    <h2>Калькулятор аренды</h2>
+    <div class="pricing-layout">
+        <form id="pricing-form" class="card">
+            <h2>Условия аренды</h2>
+            <label for="equipment">Предмет</label>
+            <select id="equipment" name="equipmentId" required disabled>
+                <option value="">Загружаем каталог…</option>
+            </select>
+            <label for="days">Срок в днях</label>
+            <input id="days" name="days" type="number" min="1" max="30" step="1" value="1" required>
+            <label for="tariff">Тариф</label>
+            <select id="tariff" name="tariff" required>
+                <option value="STANDARD">Стандартный</option>
+                <option value="LONG_TERM">Долгосрочный (−10% от 7 дней)</option>
+            </select>
+            <fieldset class="pricing-extras">
+                <legend>Дополнительные услуги</legend>
+                <label><input name="extras" type="checkbox" value="INSURANCE"> Страховка (200 KZT/день)</label>
+                <label><input name="extras" type="checkbox" value="ACCESSORY_KIT"> Комплект аксессуаров (300 KZT)</label>
+            </fieldset>
+            <button id="calculate" type="submit" disabled>Рассчитать</button>
+        </form>
+        <section class="card" aria-labelledby="breakdown-title">
+            <h2 id="breakdown-title">Разбивка стоимости</h2>
+            <div id="pricing-error" role="alert"></div>
+            <p id="pricing-status" role="status">Выберите предмет и нажмите «Рассчитать».</p>
+            <dl id="breakdown" class="pricing-breakdown" hidden></dl>
+        </section>
+    </div>
+    <noscript><p class="message error">Для работы с калькулятором включите JavaScript.</p></noscript>
+</main>
+</body>
+</html>

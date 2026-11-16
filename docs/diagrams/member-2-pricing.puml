@@ -1,0 +1,37 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+interface PricingService {
+    +calculate(equipment, terms): PriceBreakdown
+}
+interface PricingStrategy {
+    +discount(baseCost, days): BigDecimal
+}
+interface RentalPrice {
+    +calculate(dailyRate, days): PriceBreakdown
+}
+interface EquipmentRepository
+
+class PricingController
+class RentalPricingService
+class StandardPricingStrategy
+class LongTermPricingStrategy
+class BaseRentalPrice
+abstract class ExtraPriceDecorator
+class InsuranceDecorator
+class AccessoryKitDecorator
+
+PricingController --> EquipmentRepository
+PricingController --> PricingService
+RentalPricingService ..|> PricingService
+RentalPricingService --> PricingStrategy : selects
+RentalPricingService ..> RentalPrice : builds chain
+StandardPricingStrategy ..|> PricingStrategy
+LongTermPricingStrategy ..|> PricingStrategy
+BaseRentalPrice ..|> RentalPrice
+BaseRentalPrice --> PricingStrategy
+ExtraPriceDecorator ..|> RentalPrice
+ExtraPriceDecorator --> RentalPrice : wraps
+InsuranceDecorator --|> ExtraPriceDecorator
+AccessoryKitDecorator --|> ExtraPriceDecorator
+@enduml
